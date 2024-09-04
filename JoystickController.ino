@@ -1,15 +1,22 @@
+int total = 0;
+int count = 0;
+int lastZ = 0;
 // Keyboard Matrix Tutorial Example
 // baldengineer.com
 // CC BY-SA 4.0
  #include <PicoGamepad.h>
  PicoGamepad gamepad;
 // JP1 is an input
-byte rows[] = {11,12,13,14,15};
+byte rows[] ={9,10,11,12,13,14,15};
 const int rowCount = sizeof(rows)/sizeof(rows[0]);
 
 // JP2 and JP3 are outputs
-byte cols[] = {16,17,18,19,20};
+byte cols[] =  {16,17,18,19,20,21};
 const int colCount = sizeof(cols)/sizeof(cols[0]);
+
+int analog1 = 26;
+int analog2 = 27;
+int analog3 = 28;
 
 byte keys[colCount][rowCount];
 
@@ -26,6 +33,9 @@ void setup() {
 		Serial.print(cols[x]); Serial.println(" as input-pullup");
 		pinMode(cols[x], OUTPUT);
 	}
+  pinMode(analog1, INPUT);
+  pinMode(analog2, INPUT);
+  pinMode(analog3, INPUT);
 		Serial.print("HELLO");
 }
 
@@ -68,15 +78,37 @@ void pressButtons()
 {
   for (int rowIndex=0; rowIndex < rowCount; rowIndex++) {
 		for (int colIndex=0; colIndex < colCount; colIndex++) {	
-      gamepad.SetButton((rowIndex * 5) + colIndex, !keys[colIndex][rowIndex]);
+      gamepad.SetButton((rowIndex * sizeof(cols)) + colIndex, !keys[colIndex][rowIndex]);
 		}	
 	}
+}
+void readAnalog()
+{
+  float val = analogRead(analog1);
+  val = map(val, 0, 1023, -32767, 32767);
+  gamepad.SetX(val);
+
+   val = analogRead(analog2);
+  val = map(val, 0, 1023, -32767, 32767);
+  gamepad.SetY(val);
+
+  val = analogRead(analog3);
+  total += val;
+  count += 1;
+  if(count >= 20)
+  {
+    lastZ = map(total / 20, 500, 800, -32767, 32767);
+    count = 0;
+    total = 0;
+  }
+  gamepad.SetZ(lastZ);
 }
 void loop() {
 	  readMatrix();
 		printMatrix();
     pressButtons();
+    readAnalog();
     gamepad.send_update();
-    delay(100);
+    delay(10);
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); 
 }
